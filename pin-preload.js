@@ -26,10 +26,10 @@
     host.style.cssText = 'position:fixed;top:4px;right:148px;width:28px;height:28px;z-index:2147483646;-webkit-app-region:no-drag;';
     const root = host.attachShadow({ mode: 'closed' });
     const style = document.createElement('style');
-    style.textContent = ':host{color:var(--text-primary,var(--app-color-text,#6b6b6b))}button{all:unset;box-sizing:border-box;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;-webkit-app-region:no-drag;color:inherit}button:hover{background:rgba(128,128,128,.18)}button:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}button[aria-pressed="true"]{color:#10a37f;background:rgba(16,163,127,.16)}svg{width:16px;height:16px;pointer-events:none}button[aria-pressed="true"] svg{transform:rotate(-35deg)}@media(prefers-color-scheme:dark){:host{color:var(--text-primary,var(--app-color-text,#d7d7d7))}}';
+    style.textContent = ':host{color:var(--text-primary,var(--app-color-text,#6b6b6b))}button{all:unset;box-sizing:border-box;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;-webkit-app-region:no-drag;color:inherit}button:hover{background:rgba(128,128,128,.18)}button:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}svg{width:16px;height:16px;pointer-events:none}button[aria-pressed="true"] svg{transform:rotate(-35deg)}button[aria-pressed="true"] .pin-head{fill:currentColor}@media(prefers-color-scheme:dark){:host{color:var(--text-primary,var(--app-color-text,#d7d7d7))}}';
     button = document.createElement('button');
     button.type = 'button';
-    button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8M9 3v6l-3 4v2h12v-2l-3-4V3M12 15v6"/></svg>';
+    button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="pin-head" d="M9 3h6v6l3 4v2H6v-2l3-4Z"/><path d="M8 3h8M12 15v6"/></svg>';
     button.addEventListener('click', async event => {
       if (!event.isTrusted || busy) return;
       busy = true;
