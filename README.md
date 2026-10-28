@@ -1,53 +1,55 @@
 # ChatGPT Internal Pin
 
-为 Windows ChatGPT 主窗口标题栏添加一个图钉按钮，点击置顶，再次点击取消，并保存选择。名称保持 ChatGPT，快捷方式使用本机商店原版图标。
+Adds a pin button to the title bar of the Windows ChatGPT main window. Click to keep the window on top; click again to unpin. The preference is saved. The application and shortcuts keep the name **ChatGPT** and use the original Store icon from the local installation.
 
-本仓库仅包含原创补丁和工具，不含 OpenAI 客户端、图标或账号数据。非 OpenAI 官方项目。MIT 许可仅适用于原创代码。
+This repository contains original patch code and tooling only. It does not include OpenAI application binaries, icons, or account data. Unofficial project, not affiliated with OpenAI. The MIT license applies to the original code in this repository.
 
-## 支持版本
+## Supported build
 
-内部版本 26.1023.50603，对应本次商店包 OpenAI.Codex_26.1023.6123.0_x64。严格校验原主进程和 preload 的 SHA-256；其他版本拒绝，需重新适配。
+Internal version `26.1023.50603`, observed in Store package `OpenAI.Codex_26.1023.6123.0_x64`. The patch checks the original main-process and preload SHA-256 hashes. Other builds are rejected and require adaptation.
 
-## 安装
+## Install
 
-需要 Python 3.11+。下载源码，在独立 PowerShell 窗口运行：
+Requires Python 3.11+ and Windows PowerShell. Download the source and run this command in a separate PowerShell window:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-local.ps1
 ```
 
-出现提示后完全退出 ChatGPT（包括托盘），保持安装窗口运行，再按回车。不要在即将退出的客户端内置终端执行。
+When prompted, completely exit ChatGPT, including its tray process. Keep the installer window open and press Enter. Do not run the installer inside the client that you are about to close.
 
-安装器从本机商店包复制完整客户端到 `%LOCALAPPDATA%\ChatGPT-Pinned\app`，修改副本中的 ASAR 和 EXE，并校验复制结果。桌面快捷方式叫 ChatGPT。安装器不会自动启动客户端。
+The installer copies the complete locally installed client to `%LOCALAPPDATA%\ChatGPT-Pinned\app`, patches the copied ASAR and executable, and verifies the installed files. The desktop shortcut is named **ChatGPT**. It does not automatically launch the client.
 
-任务栏旧图标绑定商店版，第一次需取消固定；从桌面打开修改版，再固定运行中的图标。以后只使用该任务栏图标。修复已有修改版快捷方式的名称和原版图标：
+An existing Store taskbar pin remains bound to the Store application. Unpin it once, open the modified client from the desktop, and pin its running icon. Thereafter, use that taskbar icon. Repair the name and original icon of existing shortcuts pointing to the modified client with:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\restore-shortcuts.ps1
 ```
 
-## 实现和完整排查流程
+## Implementation and troubleshooting workflow
 
-1. 识别商店包及内部版本，备份原文件，读取 ASAR 索引并验证源文件哈希。
-2. 仅在主窗口创建处挂载 pin-main.cjs，调用 Electron setAlwaysOnTop，读取实际状态并保存选择。
-3. 隔离 preload 添加封闭 Shadow DOM 图钉按钮。IPC 仅允许登记窗口的本地顶层文档，拒绝其他窗口、子框架与远程页面。
-4. 创建新 ASAR，保留原始数据，追加修改条目，更新完整性信息并回读校验。
-5. EXE 包含 ASAR 头部 SHA-256。只有原哈希唯一出现时才同步新哈希，保留 ASAR 校验及 onlyLoadAppFromAsar fuse。修改 EXE 会使原有 Authenticode 签名失效。
-6. WindowsApps 直接替换被系统拒绝；本机原文件和权限已恢复。因此改为普通目录里的完整客户端副本。
-7. 关闭承载聊天的客户端会中断其安装操作，因此安装由用户在独立窗口运行。
-8. 默认 EXE 图标与商店图标不同。修复工具从本机商店包读取原版 PNG，原样封装成 ICO，更新快捷方式；名称统一为 ChatGPT。
+1. Identify the installed package and internal version, back up the original files, parse the ASAR index, and verify source hashes.
+2. Attach `pin-main.cjs` only when the primary window is created. Use Electron `setAlwaysOnTop`, read its actual state, and persist the preference.
+3. Add an icon-only button through the isolated preload and a closed Shadow DOM. IPC accepts only registered windows and their local top-level document; foreign windows, subframes, and remote documents are rejected.
+4. Create a new ASAR, retain original packed data, append changed entries, update integrity metadata, and read the entries back for verification.
+5. Synchronize the executable's embedded ASAR-header SHA-256 only when the original hash occurs exactly once. ASAR integrity checks and the `onlyLoadAppFromAsar` fuse remain enabled. Modifying the executable invalidates its original Authenticode signature.
+6. Direct replacement inside WindowsApps was denied on the development machine. The original installed files and permissions were restored. Delivery therefore uses a complete client copy in a normal user directory.
+7. Closing the client interrupted installation launched by that client. Installation now runs from an independent user-opened window.
+8. The default executable icon differed from the Store icon. The repair script reads the original local Store PNG, wraps the unchanged image in ICO format, and updates shortcut icon references. The name remains **ChatGPT**.
 
-## 验证
+## Validation
 
 ```powershell
 node --test test_pin.cjs
 python patch_client.py --source ORIGINAL_ASAR --output NEW_ASAR --exe-source ORIGINAL_EXE --exe-output NEW_EXE
 ```
 
-三项主进程测试通过：置顶和保存、拒绝未授权来源、保留置顶并允许取消。生成的 ASAR 条目已回读校验。早期本地副本实际点击按钮后显示“取消置顶”；用户随后运行当前安装器，本机检测到修改版进程。快捷方式名称和图标引用已核验。
+Three main-process tests pass: native toggling and persistence, rejection of unauthorized sources, and preserving a pin through host focus resets while allowing explicit unpinning. Generated ASAR entries were read back successfully. Executable integrity synchronization was checked against the staged patched executable.
 
-当前版本跨应用遮挡、重启保持及不同缩放比例仍需完整实机验收。Explorer 可能在下次打开客户端时刷新缓存图标。通用安装器仅做语法检查，未在第二台机器完整运行。生成的 ASAR/EXE 含本机客户端代码，只留本机，不上传。
+An earlier local client copy was clicked live and changed its button label to the unpin action. The user subsequently ran the current installer, and a process from the modified installation was observed. Desktop and taskbar shortcut names and icon references were verified; the ICO image payload exactly matches the original Store asset.
 
-## 恢复与更新
+Complete current-build acceptance testing across application switching, restart persistence, and display scales remains outstanding. Explorer may refresh its cached icon when the client is next opened. The general installer has passed syntax checks but has not been run end to end on a second machine. Generated ASAR and EXE files contain local application code and must remain local.
 
-退出修改版并取消固定，从开始菜单启动商店原版并重新固定。商店更新不自动更新此副本；新版需要重新验证和适配补丁。
+## Restore and update
+
+Exit the modified client and unpin it. Open the original Store client from the Start menu and pin it again. Store updates do not automatically update the copied client. New builds require fresh verification and patch adaptation.
